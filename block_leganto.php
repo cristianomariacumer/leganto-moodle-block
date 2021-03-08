@@ -43,6 +43,39 @@ class block_leganto extends block_base {
      * @return array The reading lists for the course
      */
     function getReadingLists($courseCode = '') {
+	//UNIBZ impl    
+        global $CFG;
+        if (strpos($courseCode,"_") == false) { //check if we have the old or the new course format
+		//ok, we have the new course format and we need to convert the course code so thatwe can retrive the reading
+		// lists form leganto
+                $curlopt = array();
+                if(isset($CFG->proxyhost) && $CFG->proxyhost != "") {
+                        $proxyhost = $CFG->proxyhost . ":" . $CFG->proxyport;
+                        $curlopt[CURLOPT_PROXY] = $proxyhost;
+                        $curlopt[CURLOPT_FOLLOWLOCATION] = 1;
+                        if(isset($CFG->proxytype) && $CFG->proxytype == "SOCKS5"){
+                                $curlopt[CURLOPT_PROXYTYPE] = CURLPROXY_SOCKS5;
+                        }
+                        if(isset($CFG->proxyuser) && $CFG->proxyuser != ""){
+                                $proxyauth = $CFG->proxyuser . ":" . $CFG->proxypassword;
+                                $curlopt[CURLOPT_PROXYUSERPWD] = $proxyauth;
+                        }
+                }
+                $curl = curl_init();
+                curl_setopt_array($curl, $curlopt);
+                curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+                curl_setopt($curl, CURLOPT_USERPWD, $CFG->alma_user . ":" . $CFG->alma_password);
+                $url = $CFG->alma_url . $courseCode;
+                curl_setopt($curl, CURLOPT_URL, $url);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+                $result = curl_exec($curl);
+                $response = json_decode($result,true);
+                $courseCode = $response['CourseCode'];
+                curl_close($curl);
+        }
+    
+	    
+	    
         $ltiProfile = get_config('leganto', 'ltiProfile');
         $normalizeByLtiProfile = $ltiProfile ? '&normalize=' . urlencode($ltiProfile) : '';
         $courseUrl = get_config('leganto', 'almaApiUrl') . "/almaws/v1/courses";
