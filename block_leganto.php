@@ -150,16 +150,17 @@ class block_leganto extends block_base {
     }
 
     function callAlmaAPI($url, $parameters=''){
+	global $CGF;
 
-		if(substr($url, 0, 4 ) !== "http"){
-			//not production
-			$url = get_config('leganto', 'almaApiUrl') . $url;
-		}
+	if(substr($url, 0, 4 ) !== "http"){
+		//not production
+		$url = get_config('leganto', 'almaApiUrl') . $url;
+	}
 
         $apiKey = $this->getApiKey();
         $apiUrl = $url . "?apikey=$apiKey&" . $parameters;
 
-		$this->debug("Calling API URL:	$apiUrl");
+	$this->debug("Calling API URL:	$apiUrl");
 
         // using php curl
         $ch = curl_init();
@@ -172,6 +173,21 @@ class block_leganto extends block_base {
             CURLOPT_HTTP_VERSION      => CURL_HTTP_VERSION_1_1,
             CURLOPT_HTTPHEADER     => $header
         );
+	    
+	//add support for system proxy
+	if(isset($CFG->proxyhost) && $CFG->proxyhost != "") {
+            $proxyhost = $CFG->proxyhost . ":" . $CFG->proxyport;
+            $options[CURLOPT_PROXY] = $proxyhost;
+            $oprions[CURLOPT_FOLLOWLOCATION] = 1;
+                if(isset($CFG->proxytype) && $CFG->proxytype == "SOCKS5"){
+                     $options[CURLOPT_PROXYTYPE] = CURLPROXY_SOCKS5;
+                }
+                if(isset($CFG->proxyuser) && $CFG->proxyuser != ""){
+                     $proxyauth = $CFG->proxyuser . ":" . $CFG->proxypassword;
+                     $options[CURLOPT_PROXYUSERPWD] = $proxyauth;
+                }
+        }
+
 
         curl_setopt_array($ch, $options);
         $response = curl_exec($ch); // execute the request and get a response
